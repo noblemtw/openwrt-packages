@@ -1,0 +1,11 @@
+--- a/configure	2023-01-24 19:04:03.670870335 +0000
++++ b/configure	2023-01-24 19:45:18.745722809 +0000
+@@ -4367,6 +4367,8 @@ if test "${enable_pskc+set}" = set; then
+ else
+   enable_pskc=yes
+ fi
++  #Force disable pskc
++  enable_pskc=no
+ 
+  if test "x$enable_pskc" = xyes; then
+   ENABLE_PSKC_TRUE=

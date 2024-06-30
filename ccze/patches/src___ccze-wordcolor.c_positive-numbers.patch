@@ -1,0 +1,15 @@
+Description: Recognise +-prefixed numbers too
+Bug-Debian: https://bugs.debian.org/416854
+Author: GSR <gsr.bugs@infernal-iceberg.com>
+
+--- ccze-0.2.1.orig/src/ccze-wordcolor.c
++++ ccze-0.2.1/src/ccze-wordcolor.c
+@@ -291,7 +291,7 @@
+   reg_time = pcre_compile ("\\d{1,2}:\\d{1,2}(:\\d{1,2})?", 0, &error,
+ 			   &errptr, NULL);
+   reg_addr = pcre_compile ("^0x(\\d|[a-f])+$", 0, &error, &errptr, NULL);
+-  reg_num = pcre_compile ("^-?\\d+$", 0, &error, &errptr, NULL);
++  reg_num = pcre_compile ("^[+-]?\\d+$", 0, &error, &errptr, NULL);
+   reg_sig = pcre_compile ("^sig(hup|int|quit|ill|abrt|fpe|kill|segv|pipe|"
+ 			  "alrm|term|usr1|usr2|chld|cont|stop|tstp|tin|tout|"
+ 			  "bus|poll|prof|sys|trap|urg|vtalrm|xcpu|xfsz|iot|"

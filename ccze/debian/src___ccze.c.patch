@@ -1,0 +1,33 @@
+Description: fix segfault in parse_opt
+Bug-Debian: https://bugs.debian.org/322993
+Author: Vincent Crevot <vcrevot@retroject.net>
+
+--- ccze-0.2.1.orig/src/ccze.c
++++ ccze-0.2.1/src/ccze.c
+@@ -209,7 +209,7 @@
+ 	}
+       break;
+     case 'a':
+-      plugin = strtok (optarg, "=");
++      plugin = strtok (arg, "=");
+       value = strtok (NULL, "\n");
+       ccze_plugin_argv_set (plugin, value);
+       break;
+@@ -249,7 +249,7 @@
+       ccze_config.remfac = 1;
+       break;
+     case 'm':
+-      subopts = optarg;
++      subopts = arg;
+       while (*subopts != '\0')
+ 	{
+ 	  switch (getsubopt (&subopts, m_subopts, &value))
+@@ -273,7 +273,7 @@
+ 	}
+       break;
+     case 'o':
+-      subopts = optarg;
++      subopts = arg;
+       while (*subopts != '\0')
+ 	{
+ 	  switch (getsubopt (&subopts, o_subopts, &value))

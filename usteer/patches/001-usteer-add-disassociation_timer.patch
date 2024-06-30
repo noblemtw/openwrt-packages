@@ -1,0 +1,11 @@
+--- a/ubus.c	2024-06-05 15:31:48.501468839 +0100
++++ b/ubus.c	2024-06-05 15:29:42.081239007 +0100
+@@ -702,6 +702,7 @@ int usteer_ubus_band_steering_request(st
+ 	blobmsg_add_u8(&b, "disassociation_imminent", false);
+ 	blobmsg_add_u8(&b, "abridged", false);
+ 	blobmsg_add_u32(&b, "validity_period", 100);
++        blobmsg_add_u32(&b, "disassociation_timer", 150);
+
+ 	c = blobmsg_open_array(&b, "neighbors");
+ 	for_each_local_node(node) {
+

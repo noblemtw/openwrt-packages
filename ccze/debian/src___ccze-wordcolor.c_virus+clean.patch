@@ -1,0 +1,25 @@
+Description: Add "virus" & "clean" to bad/goodwords
+ To better interpret logs about virus (for example with clamsmtp) it
+ would be nice to add "virus" to the bad words list and "clean" to the
+ good word list.
+Bug-Debian: https://bugs.debian.org/345586
+Author: Jean-Philippe Guérard <jean-philippe.guerard@tigreraye.org>
+
+--- ccze-0.2.1.orig/src/ccze-wordcolor.c
++++ ccze-0.2.1/src/ccze-wordcolor.c
+@@ -37,13 +37,13 @@
+   "warn", "restart", "exit", "stop", "end", "shutting", "down", "close",
+   "unreach", "can't", "cannot", "skip", "deny", "disable", "ignored",
+   "miss", "oops", "not", "backdoor", "blocking", "ignoring",
+-  "unable", "readonly", "offline", "terminate", "empty"
++  "unable", "readonly", "offline", "terminate", "empty", "virus"
+ };
+ 
+ static char *words_good[] = {
+   "activ", "start", "ready", "online", "load", "ok", "register", "detected",
+   "configured", "enable", "listen", "open", "complete", "attempt", "done",
+-  "check", "listen", "connect", "finish"
++  "check", "listen", "connect", "finish", "clean"
+ };
+ 
+ static char *words_error[] = {

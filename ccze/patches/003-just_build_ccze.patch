@@ -1,0 +1,16 @@
+--- a/src/Makefile.in	2023-07-06 14:34:34.857117536 +0100
++++ b/src/Makefile.in	2023-07-06 14:34:44.541348352 +0100
+@@ -47,11 +47,11 @@ OBJECTS		= ccze.o ccze-color.o ccze-plug
+ 		ccze-builtins.o ccze-compat.o
+
+ ## -- Standard targets -- ##
+-all: ${PROGRAM} ${PLUGIN_SHOBJS} ccze-dump ccze-cssdump
++all: ${PROGRAM} ${PLUGIN_SHOBJS}
+
+ install: all
+ 	${INSTALL} -d ${DESTDIR}${bindir}
+-	${INSTALL_PROGRAM} ${PROGRAM} ccze-cssdump ${DESTDIR}${bindir}/
++	${INSTALL_PROGRAM} ${PROGRAM} ${DESTDIR}${bindir}/
+ 	${INSTALL} -d ${DESTDIR}${includedir}
+ 	${INSTALL_DATA} ${srcdir}/ccze.h ${DESTDIR}${includedir}
+ ifneq (${SH_PLUGINS},)

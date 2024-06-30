@@ -1,0 +1,330 @@
+Description: add plugin for dpkg logs
+Author: arno. <arno.@no-log.org>
+Bug-Debian: https://bugs.debian.org/405617
+
+--- ccze-0.2.1.orig/ccze.plugins
++++ ccze-0.2.1/ccze.plugins
+@@ -1,5 +1,6 @@
+ apm
+ distcc
++dpkg
+ exim
+ fetchmail
+ ftpstats
+--- ccze-0.2.1.orig/src/mod_dpkg.c
++++ ccze-0.2.1/src/mod_dpkg.c
+@@ -0,0 +1,180 @@
++/* -*- mode: c; c-file-style: "gnu" -*-
++ * mod_dpkg.c -- Dpkg log-coloriser module for CCZE
++ * Copyright (C) 2007 arno. <arno.@no-log.org>
++ *
++ * This file is part of ccze.
++ *
++ * ccze is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * ccze is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
++ * License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++ */
++
++#include <ccze.h>
++#include <stdlib.h>
++#include <string.h>
++
++static void ccze_dpkg_setup (void);
++static void ccze_dpkg_shutdown (void);
++static int ccze_dpkg_handle (const char *str, size_t length, char **rest);
++
++
++static pcre *reg_dpkg_status, *reg_dpkg_action, *reg_dpkg_conffile;
++
++static char *
++ccze_dpkg_status_process(const char *str, int *offsets, int match)
++{
++  char *date, *state, *pkg, *installed_version;
++
++  pcre_get_substring (str, offsets, match, 1, (const char **)&date);
++  pcre_get_substring (str, offsets, match, 2, (const char **)&state);
++  pcre_get_substring (str, offsets, match, 3, (const char **)&pkg);
++  pcre_get_substring (str, offsets, match, 4, (const char **)&installed_version);
++
++  ccze_print_date(date);
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_KEYWORD, "status");
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_PKGSTATUS, state);
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_PKG, pkg);
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_DEFAULT, installed_version);
++  ccze_newline();
++
++  free(date);
++  free(state);
++  free(pkg);
++  free(installed_version);
++
++  return NULL;
++}
++
++static char *
++ccze_dpkg_action_process(const char *str, int *offsets, int match)
++{
++  char *date, *action, *pkg, *installed_version, *available_version;
++
++  pcre_get_substring (str, offsets, match, 1, (const char **)&date);
++  pcre_get_substring (str, offsets, match, 2, (const char **)&action);
++  pcre_get_substring (str, offsets, match, 3, (const char **)&pkg);
++  pcre_get_substring (str, offsets, match, 4, (const char **)&installed_version);
++  pcre_get_substring (str, offsets, match, 5, (const char **)&available_version);
++
++  ccze_print_date(date);
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_KEYWORD, action);
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_PKG, pkg);
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_DEFAULT, installed_version);
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_DEFAULT, available_version);
++  ccze_newline();
++
++  free(date);
++  free(action);
++  free(pkg);
++  free(installed_version);
++  free(available_version);
++
++  return NULL;
++}
++
++static char *
++ccze_dpkg_conffile_process(const char *str, int *offsets, int match)
++{
++  char *date, *filename, *decision;
++  /* YYYY-MM-DD HH:MM:SS conffile <filename> <decision> */
++
++  pcre_get_substring (str, offsets, match, 1, (const char **)&date);
++  pcre_get_substring (str, offsets, match, 2, (const char **)&filename);
++  pcre_get_substring (str, offsets, match, 3, (const char **)&decision);
++
++  ccze_print_date(date);
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_KEYWORD, "conffile");
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_FILE, filename);
++  ccze_space();
++  ccze_addstr(CCZE_COLOR_KEYWORD, decision);
++  ccze_newline();
++
++  free(date);
++  free(filename);
++  free(decision);
++
++  return NULL;
++}
++
++
++static void
++ccze_dpkg_setup (void)
++{
++  const char *error;
++  int errptr;
++
++  /* YYYY-MM-DD HH:MM:SS status <state> <pkg> <installed-version> */
++  reg_dpkg_status = pcre_compile(
++      "^([-\\d]{10}\\s[:\\d]{8})\\sstatus\\s(\\S+)\\s(\\S+)\\s(\\S+)$",
++      0, &error, &errptr, NULL);
++
++  /* YYYY-MM-DD HH:MM:SS <action> <pkg> <installed-version> <available-version> */
++  reg_dpkg_action = pcre_compile(
++      "^([-\\d]{10}\\s[:\\d]{8})\\s(install|upgrade|remove|purge)\\s(\\S+)\\s(\\S+)\\s(\\S+)$",
++      0, &error, &errptr, NULL);
++
++  /* YYYY-MM-DD HH:MM:SS conffile <filename> <decision> */
++  reg_dpkg_conffile = pcre_compile(
++      "^([-\\d]{10}\\s[:\\d]{8})\\sconffile\\s(\\S+)\\s(install|keep)$",
++      0, &error, &errptr, NULL);
++
++}
++
++static void
++ccze_dpkg_shutdown (void)
++{
++  free (reg_dpkg_status);
++  free (reg_dpkg_action);
++  free (reg_dpkg_conffile);
++}
++
++static int
++ccze_dpkg_handle (const char *str, size_t length, char **rest)
++{
++  int match, offsets[99];
++  
++  if ((match = pcre_exec (reg_dpkg_status, NULL, str, length,
++                  0, 0, offsets, 99)) >= 0)
++  {
++      *rest = ccze_dpkg_status_process (str, offsets, match);
++      return 1;
++  }
++
++  if ((match = pcre_exec (reg_dpkg_action, NULL, str, length,
++                  0, 0, offsets, 99)) >= 0)
++  {
++      *rest = ccze_dpkg_action_process (str, offsets, match);
++      return 1;
++  }
++
++  if ((match = pcre_exec (reg_dpkg_conffile, NULL, str, length,
++                  0, 0, offsets, 99)) >= 0)
++  {
++      *rest = ccze_dpkg_conffile_process (str, offsets, match);
++      return 1;
++  }
++
++  return 0;
++}
++
++CCZE_DEFINE_PLUGIN (dpkg, FULL, "Coloriser for dpkg logs.");
+--- ccze-0.2.1.orig/testsuite/Makefile.in
++++ ccze-0.2.1/testsuite/Makefile.in
+@@ -12,7 +12,8 @@
+ TESTS_ENVIRONMENT       = top_builddir=$(top_builddir) \
+ 			VERSION=$(VERSION)
+ TESTS                   = version.test bug-wnum.test bug-procmailsubj.test \
+-			bug-procmailsubj2.test bug-sysrepeat.test bug-httpd.test
++			bug-procmailsubj2.test bug-sysrepeat.test bug-httpd.test \
++			bug-dpkg.test
+ TEST_IO			= $(foreach test,${TESTS},\
+ 				$(addsuffix .ok,$(basename $(test)))) \
+ 			$(foreach test,${TESTS},\
+--- ccze-0.2.1.orig/testsuite/bug-dpkg.in
++++ ccze-0.2.1/testsuite/bug-dpkg.in
+@@ -0,0 +1,4 @@
++2006-12-01 15:50:14 upgrade gpgv 1.4.5-2 1.4.5-3
++2006-12-01 15:50:20 status half-installed icewm 1.2.28-3
++2006-12-01 15:50:22 status unpacked libexif12 0.6.13-5
++2006-12-25 12:49:29 conffile /etc/postfix/post-install install
+--- ccze-0.2.1.orig/testsuite/bug-dpkg.ok
++++ ccze-0.2.1/testsuite/bug-dpkg.ok
+@@ -0,0 +1,4 @@
++<date>2006-12-01 15:50:14</date><default> </default><keyword>upgrade</keyword><default> </default><pkg>gpgv</pkg><default> </default><default>1.4.5-2</default><default> </default><default>1.4.5-3</default>
++<date>2006-12-01 15:50:20</date><default> </default><keyword>status</keyword><default> </default><pkgstatus>half-installed</pkgstatus><default> </default><pkg>icewm</pkg><default> </default><default>1.2.28-3</default>
++<date>2006-12-01 15:50:22</date><default> </default><keyword>status</keyword><default> </default><pkgstatus>unpacked</pkgstatus><default> </default><pkg>libexif12</pkg><default> </default><default>0.6.13-5</default>
++<date>2006-12-25 12:49:29</date><default> </default><keyword>conffile</keyword><default> </default><file>/etc/postfix/post-install</file><default> </default><keyword>install</keyword>
+--- ccze-0.2.1.orig/testsuite/bug-dpkg.test
++++ ccze-0.2.1/testsuite/bug-dpkg.test
+@@ -0,0 +1,33 @@
++#! /bin/sh
++## bug-dpkg.test -- Check if dpkg log patterns are recognised
++## -*- sh -*-
++## Copyright (C) 2007 arno. <arno.@no-log.org>
++##
++## This file is part of CCZE.
++##
++## CCZE is free software; you can redistribute it and/or modify
++## it under the terms of the GNU General Public License as published by
++## the Free Software Foundation; either version 2 of the License, or
++## (at your option) any later version.
++##
++## CCZE is distributed in the hope that it will be useful,
++## but WITHOUT ANY WARRANTY; without even the implied warranty of
++## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++## GNU General Public License for more details.
++##
++## You should have received a copy of the GNU General Public License
++## along with this program; if not, write to the Free Software
++## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++
++DESCRIPTION="Check if dpkg log patterns are recognised."
++PROG_CMDLINE="-F /dev/null -pdpkg -o nolookups -d"
++
++# Common definitions
++if test -z "${srcdir}"; then
++	srcdir=`echo "$0" | sed 's,[^/]*$,,'`
++	test "${srcdir}" = "$0" && srcdir=.
++	test -z "${srcdir}" && srcdir=.
++	test "${VERBOSE+set}" != set && VERBOSE=1
++fi
++. ${srcdir}/defs
++. ${srcdir}/do-test
+--- ccze-0.2.1.orig/src/ccze-color.c
++++ ccze-0.2.1/src/ccze-color.c
+@@ -133,6 +133,7 @@
+   {CCZE_KEYWORD ("system", CCZE_COLOR_SYSTEMWORD, "\"System words\"")},
+   {CCZE_KEYWORD ("process", CCZE_COLOR_PROC, "Sender process")},
+   {CCZE_KEYWORD ("dir", CCZE_COLOR_DIR, "Directory names")},
++  {CCZE_KEYWORD ("file", CCZE_COLOR_FILE, "File names")},
+   {CCZE_KEYWORD ("prot", CCZE_COLOR_PROT, "Protocols")},
+   {CCZE_KEYWORD ("service", CCZE_COLOR_SERVICE, "Services")},
+   {CCZE_KEYWORD ("email", CCZE_COLOR_EMAIL, "E-mail addresses")},
+@@ -169,6 +170,8 @@
+   {CCZE_KEYWORD ("ftpcodes", CCZE_COLOR_FTPCODES, "FTP codes")},
+   {CCZE_KEYWORD ("keyword", CCZE_COLOR_KEYWORD,
+ 		 "Various keywords (like PHP in php.log, etc)")},
++  {CCZE_KEYWORD ("pkgstatus", CCZE_COLOR_PKGSTATUS, "package status (dpkg)")},
++  {CCZE_KEYWORD ("pkg", CCZE_COLOR_PKG, "package name (dpkg)")},
+   
+   {CCZE_KEYWORD_H ("black", CCZE_COLOR_STATIC_BLACK, "Black")},
+   {CCZE_KEYWORD_H ("red", CCZE_COLOR_STATIC_RED, "Red")},
+@@ -487,6 +490,7 @@
+   ccze_color_table[CCZE_COLOR_EMAIL] = (RAW_ANSI_BOLD | RAW_ANSI_GREEN);
+   ccze_color_table[CCZE_COLOR_SUBJECT] = (RAW_ANSI_MAGENTA);
+   ccze_color_table[CCZE_COLOR_DIR] = (RAW_ANSI_BOLD | RAW_ANSI_CYAN);
++  ccze_color_table[CCZE_COLOR_FILE] = ccze_color_table[CCZE_COLOR_DIR];
+   ccze_color_table[CCZE_COLOR_SIZE] = (RAW_ANSI_BOLD | RAW_ANSI_WHITE);
+   ccze_color_table[CCZE_COLOR_USER] = (RAW_ANSI_BOLD | RAW_ANSI_YELLOW);
+   ccze_color_table[CCZE_COLOR_HTTPCODES] = (RAW_ANSI_BOLD | RAW_ANSI_WHITE);
+@@ -536,6 +540,8 @@
+   ccze_color_table[CCZE_COLOR_PERCENTAGE] = (RAW_ANSI_BOLD | RAW_ANSI_YELLOW);
+   ccze_color_table[CCZE_COLOR_FTPCODES] = (RAW_ANSI_CYAN);
+   ccze_color_table[CCZE_COLOR_KEYWORD] = (RAW_ANSI_BOLD | RAW_ANSI_YELLOW);
++  ccze_color_table[CCZE_COLOR_PKGSTATUS] = (RAW_ANSI_GREEN);
++  ccze_color_table[CCZE_COLOR_PKG] = (RAW_ANSI_BOLD|RAW_ANSI_RED);
+ 
+   ccze_color_table[CCZE_COLOR_STATIC_BLACK] = (RAW_ANSI_BLACK);
+   ccze_color_table[CCZE_COLOR_STATIC_RED] = (RAW_ANSI_RED);
+@@ -575,6 +581,7 @@
+   ccze_color_table[CCZE_COLOR_EMAIL] = (BOLD GREEN);
+   ccze_color_table[CCZE_COLOR_SUBJECT] = (MAGENTA);
+   ccze_color_table[CCZE_COLOR_DIR] = (BOLD CYAN);
++  ccze_color_table[CCZE_COLOR_FILE] = ccze_color_table[CCZE_COLOR_DIR];
+   ccze_color_table[CCZE_COLOR_SIZE] = (BOLD WHITE);
+   ccze_color_table[CCZE_COLOR_USER] = (BOLD YELLOW);
+   ccze_color_table[CCZE_COLOR_HTTPCODES] = (BOLD WHITE);
+@@ -624,6 +631,8 @@
+   ccze_color_table[CCZE_COLOR_PERCENTAGE] = (BOLD YELLOW);
+   ccze_color_table[CCZE_COLOR_FTPCODES] = (CYAN);
+   ccze_color_table[CCZE_COLOR_KEYWORD] = (BOLD YELLOW);
++  ccze_color_table[CCZE_COLOR_PKGSTATUS] = (GREEN);
++  ccze_color_table[CCZE_COLOR_PKG] = (BOLD RED);
+ 
+   ccze_color_table[CCZE_COLOR_STATIC_BLACK] = (BLACK);
+   ccze_color_table[CCZE_COLOR_STATIC_RED] = (RED);
+--- ccze-0.2.1.orig/src/ccze.h
++++ ccze-0.2.1/src/ccze.h
+@@ -46,6 +46,7 @@
+   CCZE_COLOR_EMAIL,
+   CCZE_COLOR_SUBJECT,
+   CCZE_COLOR_DIR,
++  CCZE_COLOR_FILE,
+   CCZE_COLOR_SIZE,
+   CCZE_COLOR_USER,
+   CCZE_COLOR_HTTPCODES,
+@@ -95,6 +96,8 @@
+   CCZE_COLOR_PERCENTAGE,
+   CCZE_COLOR_FTPCODES,
+   CCZE_COLOR_KEYWORD,
++  CCZE_COLOR_PKGSTATUS,
++  CCZE_COLOR_PKG,
+ 
+   CCZE_COLOR_STATIC_BLACK,
+   CCZE_COLOR_STATIC_RED,

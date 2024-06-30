@@ -1,0 +1,24 @@
+Description: Fix some typos in the man page
+Author: A Costa <agcosta@gis.net>
+Bug-Debian: https://bugs.debian.org/307036
+
+--- ccze-0.2.1.orig/doc/ccze.1.in
++++ ccze-0.2.1/doc/ccze.1.in
+@@ -94,7 +94,7 @@
+ 
+ If \fIcssfile\fR is set, then CCZE will not inline the Cascading Style
+ Sheet information into the outputted HTML, but include a link to the
+-external stylesheet given in this paramater.
++external stylesheet given in this parameter.
+ .TP
+ .B \-p, \-\-plugin \fIPLUGIN\fR
+ While the default action is to load all plugins (see the \fBPlugins\fR
+@@ -102,7 +102,7 @@
+ plugins will be loaded. If one knows what kind of log will be piped
+ through \fBccze\fR, using this option may result in a slight speedup.
+ .TP
+-.B \-r, \-\-remove\-facilty
++.B \-r, \-\-remove\-facility
+ Syslog\-ng puts the facility level before log messages. With this
+ switch, these can be cut off.
+ .TP

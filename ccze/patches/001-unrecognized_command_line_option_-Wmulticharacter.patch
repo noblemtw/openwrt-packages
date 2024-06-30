@@ -1,0 +1,29 @@
+Description: Fix FTBFS with GCC 4.0: unrecognized command line option "-Wmulticharacter"
+Author: Andreas Jochens <aj@andaco.de>
+Bug-Debian: https://bugs.debian.org/288834
+
+--- ccze-0.2.1.orig/src/Makefile.in
++++ ccze-0.2.1/src/Makefile.in
+@@ -22,7 +22,7 @@
+ 		-Wbad-function-cast -Wsign-compare -Wchar-subscripts \
+ 		-Wcomment -Wformat -Wformat-nonliteral -Wformat-security \
+ 		-Wimplicit -Wmain -Wmissing-braces -Wparentheses \
+-		-Wreturn-type -Wswitch -Wmulticharacter \
++		-Wreturn-type -Wswitch \
+ 		-Wmissing-noreturn -Wmissing-declarations @WFLAGS_3X@
+ WFLAGS_ICC	= -Wall -wd193,279,810,869,1418,1419
+ WFLAGS_3X	= -Wsequence-point -Wdiv-by-zero -W -Wunused \
+Description: Fixes FTBFS
+ Imported from ccze 0.2.1-2.
+
+--- ccze-0.2.1.orig/configure.ac
++++ ccze-0.2.1/configure.ac
+@@ -84,8 +84,6 @@
+ AC_TYPE_SIZE_T
+ AC_TYPE_SIGNAL
+ 
+-AC_CHECK_TYPE(error_t, int)
+-
+ dnl **********************
+ dnl * Library functions
+ dnl **********************
