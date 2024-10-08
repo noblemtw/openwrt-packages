@@ -1,0 +1,15 @@
+--- a/CMakeLists.txt	2024-09-27 16:13:21.000000000 +0100
++++ b/CMakeLists.txt	2024-10-08 08:58:05.260491271 +0100
+@@ -21,10 +21,10 @@ endif()
+ project(liboqs C ASM)
+ 
+ option(OQS_DIST_BUILD "Build distributable library with optimized code for several CPU microarchitectures. Enables run-time CPU feature detection." ON)
+-option(OQS_BUILD_ONLY_LIB "Build only liboqs and do not expose build targets for tests, documentation, and pretty-printing available." OFF)
++option(OQS_BUILD_ONLY_LIB "Build only liboqs and do not expose build targets for tests, documentation, and pretty-printing available." ON)
+ set(OQS_MINIMAL_BUILD "" CACHE STRING "Only build specifically listed algorithms.")
+ option(OQS_LIBJADE_BUILD "Enable formally verified implementation of supported algorithms from libjade." OFF)
+-option(OQS_PERMIT_UNSUPPORTED_ARCHITECTURE "Permit compilation on an an unsupported architecture." OFF)
++option(OQS_PERMIT_UNSUPPORTED_ARCHITECTURE "Permit compilation on an an unsupported architecture." ON)
+ option(OQS_STRICT_WARNINGS "Enable all compiler warnings." OFF)
+ option(OQS_EMBEDDED_BUILD "Compile liboqs for an Embedded environment without a full standard library." OFF)
+ 

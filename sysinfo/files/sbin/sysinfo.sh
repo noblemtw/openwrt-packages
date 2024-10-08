@@ -206,7 +206,7 @@ print_wan() {
     for Zone in $(uci -q show firewall | grep .masq= | cut -f2 -d.); do
         if [ "$(uci -q get firewall.$Zone.masq)" == "1" ]; then
             for Device in $(uci -q get firewall.$Zone.network); do
-                local Status="$(ubus call network.interface.$Device status 2>/dev/null)"
+                local Status="$(sudo ubus call network.interface.$Device status 2>/dev/null)"
                 if [ "$Status" != "" ]; then
                     local State=""
                     local Iface=""
@@ -298,7 +298,7 @@ print_lan() {
     for Zone in $(uci -q show firewall | grep []]=zone | cut -f2 -d. | cut -f1 -d=); do
         if [ "$(uci -q get firewall.$Zone.masq)" != "1" ]; then
             for Device in $(uci -q get firewall.$Zone.network); do
-                local Status="$(ubus call network.interface.$Device status 2>/dev/null)"
+                local Status="$(sudo ubus call network.interface.$Device status 2>/dev/null)"
                 if [ "$Status" != "" ]; then
                     local State=""
                     local Iface=""
@@ -357,7 +357,12 @@ for i in $IFACES; do
         MODE=$(uci -q -P /var/state get wireless.$i.mode)
         CHANNEL=$(uci -q get wireless.$DEV.channel)
         SEC1=$(echo $i | sed 's/\[/\\[/g;s/\]/\\]/g')
-        IFNAME=$(wifi status $DEV | grep -A 1 $SEC1 | awk '/ifname/ {gsub(/[",]/,"");print $2}')
+        UID=$(/usr/bin/id -u);
+        if [ $UID == 0 ]; then
+          IFNAME=$(wifi status $DEV | grep -A 1 $SEC1 | awk '/ifname/ {gsub(/[",]/,"");print $2}')
+        else
+          IFNAME=$(sudo wifi status $DEV | grep -A 1 $SEC1 | awk '/ifname/ {gsub(/[",]/,"");print $2}')
+        fi
         [ -n "$IFNAME" ] && CNT=$(iw dev $IFNAME station dump | grep Station | wc -l)
         print_line    "WLAN: $ValueColor$SSID$NormalColor($MODE),"\
                             "ch: $ValueColor$CHANNEL$NormalColor,"\
