@@ -3,13 +3,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=oqs-provider
-PKG_SOURCE_DATE:=2024-06-14
-PKG_SOURCE_VERSION:=c4130ea3ae14f8adfb08235d0d7c5c5a3470666b
+PKG_SOURCE_DATE:=2024-10-08
+PKG_SOURCE_VERSION:=7b6928e63d45cfb72487177748b63c7c8adc559d
 PKG_RELEASE:=2
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL=https://github.com/open-quantum-safe/oqs-provider
-PKG_MIRROR_HASH:=32e15ba645e13208cf56286dc62764e5ddc0efd0f3be78025beb73c34048f65c
+PKG_MIRROR_HASH:=067f74863146558ed8b93bd077b694fe85805c92406233703d762636918c7e56
 
 PKG_MAINTAINER:=David Bauer <mail@david-bauer.net>
 PKG_LICENSE:=GPL-2.0-only
@@ -35,7 +35,8 @@ CMAKE_OPTIONS += -DCMAKE_CROSSCOMPILING=1
 CMAKE_OPTIONS += \
  -DCMAKE_INSTALL_PREFIX=/usr \
  -DCMAKE_BUILD_TYPE:STRING=Release \
- -Dliboqs_DIR=="$(STAGING_DIR)/usr/lib"
+ -DOQS_KEM_ENCODERS=off \
+ -Dliboqs_DIR=="$(STAGING_DIR)/usr/lib" 
 
 define Package/oqs-provider/conffiles
   /etc/ssl/modules.cnf.d/oqs-provider.cnf
